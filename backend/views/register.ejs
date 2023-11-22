@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D tris</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <form action="/user/login" method="post">
+        <h2>Registration</h2>
+        <label for="username">Username</label>
+        <input name="username" type="text" pattern="^[\w\d_\-]{0,32}$" autocomplete="username">
+        <label for="password">Password</label>
+        <input name="password" type="password" autocomplete="current-password">
+        <label for="confirm-password">Confirm password</label>
+        <input name="confirm-password" type="password" autocomplete="current-password">
+        <a href="/user/login">Already have an account? Login</a>
+        <input type="submit">
+    </form>
+    <script>
+        $('form').bind('submit', function () {
+            const password = $('input[name="password"]').val();
+            const confirmPassword = $('input[name="confirm-password"]').val();
+
+            if (password !== confirmPassword) {
+                alert("The passwords don't match");
+                return false;
+            }
+            $.post({
+                url: '/user/register',
+                contentType: 'application/json',
+                data: JSON.stringify({ username: $('input[name="username"]').val(), password }),
+                success: response => {
+                    if (response.success)
+                        window.location.href = '/user/login';
+                    else
+                        alert(response.message);
+                },
+                error: alert,
+            });
+            return false;
+        });
+    </script>
+</body>
+
+</html>
