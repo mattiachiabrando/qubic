@@ -8,7 +8,7 @@ RUN npm ci --only=production
 
 FROM node:21-alpine
 WORKDIR /usr/src/app
-# ENV NODE_ENV production
+ENV NODE_ENV production
 
 USER node
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
