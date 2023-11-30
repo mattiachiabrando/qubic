@@ -1,23 +1,30 @@
-export class WebSocketClient {
-    constructor(client) {
-        this.client = client;
+export class AsyncWebSocket {
+    constructor(socket) {
+        this.socket = socket;
     }
 
     send(data) {
-        return new Promise((resolve, reject) => {
-            this.client.send(data, (error) => {
-                if (error)
-                    reject(error);
-                else
-                    resolve();
-            });
-        });
+        return this.socket.send(data);
     }
 
     receive() {
         return new Promise((resolve, reject) => {
-            this.client.once('message', resolve);
-            this.client.once('error', reject);
+            this.socket.once('message', event => {
+                try {
+                    resolve(event.toString());
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            this.socket.once('error', reject);
+        });
+    }
+
+    close(code, reason) {
+        return new Promise((resolve, reject) => {
+            this.socket.close(code, reason);
+            this.socket.once('close', resolve);
+            this.socket.once('error', reject);
         });
     }
 }

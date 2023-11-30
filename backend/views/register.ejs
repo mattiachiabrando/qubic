@@ -4,44 +4,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D tris</title>
+    <title>Qubic - Register</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        * {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ecf0f1;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        form>h2 {
+            font-size: 36px;
+            color: #2d3436;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        form>div.buttons-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        form>div.buttons-container>label {
+            font-size: 14px;
+            color: #2d3436;
+            font-weight: bold;
+            margin: 0 0 2px 9px;
+        }
+
+        form>div.buttons-container>input[type="text"],
+        form>div.buttons-container>input[type="password"] {
+            width: 214px;
+            margin-bottom: 8px;
+            padding: 4px 9px;
+            border: 1px solid #2d343630;
+            border-radius: 2rem;
+            color: #2d3436;
+            font-size: 18px;
+            transition: background-color 0.2s;
+        }
+
+        form>div.buttons-container>input[type="text"]:focus,
+        form>div.buttons-container>input[type="password"]:focus {
+            border: 1px solid #fbc531;
+            outline: none;
+        }
+
+        form>div.buttons-container>a {
+            text-align: right;
+            color: #f6b93b;
+            text-decoration: none;
+            font-size: 14px;
+            margin: 0 0 2px 9px;
+        }
+
+        form>div.buttons-container>input[type="submit"] {
+            width: 214px;
+            padding: 4px 0;
+            border: none;
+            border-radius: 2rem;
+            background-color: #fbc531;
+            color: #ecf0f1;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        form>div.buttons-container>input[type="submit"]:hover {
+            background-color: #f6b93b;
+        }
+    </style>
 </head>
 
 <body>
-    <form action="/user/login" method="post">
+    <form>
         <h2>Registration</h2>
-        <label for="username">Username</label>
-        <input name="username" type="text" pattern="^[\w\d_\-]{0,32}$" autocomplete="username">
-        <label for="password">Password</label>
-        <input name="password" type="password" autocomplete="current-password">
-        <label for="confirm-password">Confirm password</label>
-        <input name="confirm-password" type="password" autocomplete="current-password">
-        <a href="/user/login">Already have an account? Login</a>
-        <input type="submit">
+        <div class="buttons-container">
+            <label for="username">Username</label>
+            <input name="username" type="text" pattern="^[\w\d_\-]{0,32}$" autocomplete="username"
+                placeholder="username">
+            <label for="password">Password</label>
+            <input name="password" type="password" autocomplete="current-password" placeholder="P4ssw0rD!">
+            <label for="confirm-password">Confirm password</label>
+            <input name="confirm-password" type="password" autocomplete="current-password" placeholder="P4ssw0rD!">
+            <a href="/user/login">Login with an account</a>
+            <input type="submit" value="Submit">
+        </div>
     </form>
     <script>
-        $('form').bind('submit', function () {
-            const password = $('input[name="password"]').val();
-            const confirmPassword = $('input[name="confirm-password"]').val();
-
-            if (password !== confirmPassword) {
-                alert("The passwords don't match");
-                return false;
-            }
-            $.post({
-                url: '/user/register',
-                contentType: 'application/json',
-                data: JSON.stringify({ username: $('input[name="username"]').val(), password }),
-                success: response => {
-                    if (response.success)
-                        window.location.href = '/user/login';
-                    else
-                        alert(response.message);
-                },
-                error: alert,
+        $(document).ready(() => {
+            $('form').submit(e => {
+                e.preventDefault();
+                $.post({
+                    url: '/user/register',
+                    type: 'POST',
+                    data: JSON.stringify({
+                        username: $('input[name="username"]').val(),
+                        password: $('input[name="password"]').val(),
+                        confirm_password: $('input[name="confirm-password"]').val()
+                    }),
+                    contentType: 'application/json',
+                    success: response => {
+                        if (response.success)
+                            window.location.href = '/user/login';
+                        else
+                            alert(response.message);
+                    },
+                    error: alert,
+                });
             });
-            return false;
         });
     </script>
 </body>

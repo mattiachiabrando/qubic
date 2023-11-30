@@ -4,23 +4,698 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D tris</title>
+    <title>Qubic - <%= user.username %>
+    </title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap');
+
+        * {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ecf0f1;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        div.welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        div.welcome>h2 {
+            font-size: 36px;
+            color: #2d3436;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        div.welcome>div.buttons-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        div.welcome>div.buttons-container>form {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        div.welcome>div.buttons-container>form>input[name="game-id"] {
+            width: 11ch;
+            text-align: center;
+            font-family: monospace, monospace;
+            padding: 4px 9px;
+            border: 1px solid #2d343630;
+            border-radius: 2rem;
+            color: #2d3436;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        div.welcome>div.buttons-container>form>input[name="game-id"]:focus {
+            border: 1px solid #fbc531;
+            outline: none;
+        }
+
+        div.welcome>div.buttons-container>form>button#join {
+            width: 165px;
+            margin-left: 9px;
+            padding: 4px 0;
+            border: none;
+            border-radius: 2rem;
+            background-color: #fbc531;
+            color: #ecf0f1;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        div.welcome>div.buttons-container>form>button#join:hover {
+            background-color: #f6b93b;
+        }
+
+        div.welcome>div.buttons-container>button#new {
+            margin-top: 9px;
+            width: 165px;
+            padding: 4px 0;
+            border: none;
+            border-radius: 2rem;
+            background-color: #fbc531;
+            color: #ecf0f1;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        div.welcome>div.buttons-container>button#new:hover {
+            background-color: #f6b93b;
+        }
+
+        div.waiting {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            margin: 0 9px;
+        }
+
+        div.waiting>h2 {
+            font-size: 36px;
+            color: #2d3436;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        div.waiting>p {
+            font-size: 16px;
+            color: #2d3436;
+            margin-bottom: 9px;
+        }
+
+        div.waiting>p>a {
+            color: #fbc531;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .lds-ripple {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .lds-ripple div {
+            position: absolute;
+            border: 4px solid #2d3436;
+            opacity: 1;
+            border-radius: 50%;
+            animation: lds-ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        .lds-ripple div:nth-child(2) {
+            animation-delay: -0.5s;
+        }
+
+        @keyframes lds-ripple {
+            0% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+
+            4.9% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+
+            5% {
+                top: 36px;
+                left: 36px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 72px;
+                height: 72px;
+                opacity: 0;
+            }
+        }
+
+        div.game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        div.game>h2.title {
+            text-align: center;
+            font-size: 36px;
+            color: #2d3436;
+            font-weight: bold;
+            margin: 9px;
+        }
+
+        div.game>div.play-container {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        div.game>div.play-container>div.img-container {
+            flex-basis: 30%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        div.game>div.play-container>div.img-container>img._3d-container {
+            max-width: 30vw;
+            max-height: 100vh;
+        }
+
+        div.game>div.play-container>div.tables-container {
+            flex-basis: 70%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container {
+            flex-basis: calc(50% - 54px);
+            display: flex;
+            justify-content: center;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container:nth-child(1) {
+            margin: 0 18px 18px 36px;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container:nth-child(2) {
+            margin: 0 36px 18px 18px;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container:nth-child(3) {
+            margin: 18px 18px 0 36px;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container:nth-child(4) {
+            margin: 18px 36px 0 18px;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face {
+            border-collapse: collapse;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #2d3436;
+            width: 50px;
+            height: 50px;
+            background-color: #ecf0f1;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>caption {
+            border-bottom: none;
+            font-weight: bold;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row:first-child>td.cell {
+            border-top: none;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row:last-child>td.cell {
+            border-bottom: none;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell:first-child {
+            border-left: none;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell:last-child {
+            border-right: none;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell:hover {
+            background-color: #cccccc;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell.x {
+            color: #0652dd;
+            cursor: default;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell.o {
+            color: #ea2027;
+            cursor: default;
+        }
+
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell.x:hover,
+        div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell.o:hover {
+            background-color: #ecf0f1;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        @media screen and (max-width: 1024px) {
+            div.game>div.play-container>div.img-container {
+                flex-basis: 50%;
+                justify-content: center;
+            }
+
+            div.game>div.play-container>div.img-container>img._3d-container {
+                max-width: 40vw;
+            }
+
+            div.game>div.play-container>div.tables-container {
+                flex-basis: 50%;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container {
+                flex-basis: 100%;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(1) {
+                margin: 0 36px 18px 36px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(2),
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(3) {
+                margin: 18px 36px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(4) {
+                margin: 18px 36px 0 36px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell {
+                font-size: 28px;
+                width: 35px;
+                height: 35px;
+            }
+        }
+
+        @media screen and (max-width: 600px) {
+
+            div.game>div.play-container>div.img-container,
+            div.game>div.play-container>div.tables-container {
+                flex-basis: 100%;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container {
+                flex-basis: calc(50% - 27px);
+                display: flex;
+                justify-content: center;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(1) {
+                margin: 0 9px 9px 18px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(2) {
+                margin: 0 18px 9px 9px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(3) {
+                margin: 9px 9px 0 18px;
+            }
+
+            div.game>div.play-container>div.tables-container>div.table-container:nth-child(4) {
+                margin: 9px 18px 0 9px;
+            }
+
+            /* div.game>div.play-container>div.tables-container>div.table-container>table.face>tr.row>td.cell {
+                font-size: 18px;
+                width: 20px;
+                height: 20px;
+            } */
+        }
+    </style>
 </head>
 
 <body>
-    <h2>Benvenuto <%= user.username %>!</h2>
-    <button>Inizia una nuova partita</button>
+    <div class="welcome">
+        <h2>Welcome <%= user.username %>!</h2>
+        <div class="buttons-container">
+            <form>
+                <input name="game-id" type="text" pattern="^[a-z0-9]{8}$"
+                    value="<%= typeof gameId !== 'undefined' ? gameId : '' %>" placeholder="abcd1234">
+                <button id="join">Join the game</button>
+            </form>
+            <button id="new">Start a new game</button>
+        </div>
+    </div>
+    <div class="waiting">
+        <h2>Waiting for someone to join the game...</h2>
+        <p>To join, they can use the following link: <a id="link"></a></p>
+        <div class="lds-ripple">
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+    <div class="game">
+        <h2 class="title"></h2>
+        <div class="play-container">
+            <div class="img-container">
+                <img class="_3d-container"></img>
+            </div>
+            <div class="tables-container"></div>
+        </div>
+    </div>
     <script>
-        $("button").on("click", function () {
-            $.ajax({
-                url: '/game',
-                type: 'POST',
-                contentType: 'application/json',
-                beforeSend: request => request.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token')),
-                success: console.log,
-                error: console.log
+        class AsyncWebSocket {
+            constructor() {
+                this.socket = null;
+            }
+
+            connect(path) {
+                return new Promise((resolve, reject) => {
+                    const url = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}${path}`;
+                    const socket = new WebSocket(url);
+                    socket.onopen = () => {
+                        this.socket = socket;
+                        resolve();
+                    };
+                    socket.onerror = reject;
+                });
+            }
+
+            send(data) {
+                this.socket.send(data);
+                return new Promise((resolve, reject) => {
+                    this.socket.onmessage = event => {
+                        if (event.data === 'OK')
+                            resolve();
+                        else
+                            reject(event.data.replace('ERROR ', ''));
+                    };
+                    this.socket.onerror = reject;
+                });
+            }
+
+            receive() {
+                return new Promise((resolve, reject) => {
+                    this.socket.onmessage = event => resolve(event.data);
+                    this.socket.onerror = reject;
+                });
+            }
+
+            close(code, reason) {
+                return new Promise((resolve, reject) => {
+                    this.socket.onclose = resolve;
+                    this.socket.onerror = reject;
+                    this.socket.close(code, reason);
+                });
+            }
+
+            getState() {
+                return this.socket.readyState;
+            }
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        function getURL(path) {
+            return `${window.location.protocol}//${window.location.host}${path}`;
+        }
+
+        function incluesArray(master, sub) {
+            return master.some((arr) => {
+                return sub.every((v, i) => {
+                    return arr[i] === v;
+                });
             });
+        }
+
+        $(document).ready(() => {
+            async function cellClick(e) {
+                if (!playing)
+                    return alert('The game is not started');
+                else if (!myTurn)
+                    return alert('It\'s not your turn!');
+                const cell = $(this);
+
+                if (cell.hasClass('x') || cell.hasClass('o'))
+                    return alert('This cell is already taken!');
+                cell.text(isX ? 'X' : 'O');
+                cell.addClass(isX ? 'x' : 'o');
+
+                myTurn = false;
+                $('.title').text('It\'s your opponent\'s turn!');
+
+                const position = cell.data('position');
+                await ws.send(position);
+
+                addLetter(isX ? xGeometry : oGeometry, position.split(','));
+
+                if (moveRelease !== null) {
+                    moveRelease();
+                    moveRelease = null;
+                }
+            }
+
+            function switchPosition(position) {
+                const cell = $(`.cell[data-position="${position}"]`);
+                cell.text(isX ? 'O' : 'X');
+                cell.addClass(isX ? 'o' : 'x');
+            }
+
+            async function play() {
+                playing = true;
+
+                while (true) {
+                    const data = await ws.receive();
+
+                    if (data === 'START') {
+                        isX = true;
+                        myTurn = true;
+                        $('.title').text('It\'s your turn!');
+                        await (new Promise(resolve => {
+                            moveRelease = resolve;
+                        }));
+                    } else if (data === 'WAIT') {
+                        $('.title').text('It\'s your opponent\'s turn!');
+                    } else if (data === 'WIN') {
+                        playing = false;
+                        $('.title').text(`You win!`);
+                        break;
+                    } else if (data.startsWith('LOSE')) {
+                        const position = data.replace('LOSE ', '');
+                        switchPosition(position);
+                        addLetter(isX ? oGeometry : xGeometry, position.split(','));
+                        $('.title').text(`You lose...`);
+                        break;
+                    } else if (data.startsWith('DRAW')) {
+                        const position = data.replace('LOSE ', '');
+                        switchPosition(position);
+                        addLetter(isX ? oGeometry : xGeometry, position.split(','));
+                        $('.title').text(`Draw`);
+                        break;
+                    } else if (data === 'LEFT') {
+                        playing = false;
+                        $('.title').text(`Your opponent left the game!`);
+                        break;
+                    } else {
+                        myTurn = true;
+                        switchPosition(data);
+                        addLetter(isX ? oGeometry : xGeometry, data.split(','));
+                        $('.title').text('It\'s your turn!');
+                        await (new Promise(resolve => {
+                            moveRelease = resolve;
+                        }));
+                    }
+                }
+            }
+
+            function addLetter(geometry, position) {
+                const mesh = new THREE.Mesh(geometry, geometry === oGeometry ? oMaterial : xMaterial);
+
+                const size = new THREE.Vector3();
+                const box = new THREE.Box3().setFromObject(mesh);
+                box.getSize(size);
+
+                mesh.position.set(
+                    -0.5 + (0.25 - size.x) / 2 + 0.25 * position[2],
+                    1.5 - position[0],
+                    -0.5 + (0.25 - size.y) / 2 + 0.25 * position[1]
+                );
+                mesh.rotation.x = Math.PI / 2;
+
+                group.add(mesh);
+
+                renderer.render(scene, camera);
+                _3DContainer.attr('src', renderer.domElement.toDataURL());
+            }
+
+            $('#new').click(async () => {
+                try {
+                    ws = new AsyncWebSocket();
+                    await ws.connect('/game');
+                    await ws.send('CREATOR');
+                    const gameId = await ws.receive();
+                    $('#link').attr('href', `/game/${gameId}`).text(getURL(`/game/${gameId}`));
+                    $('.welcome').hide();
+                    $('.waiting').show();
+                    const playerToken = await ws.receive();
+                    await ws.send(playerToken);
+                    $('.waiting').hide();
+                    $('.game').show();
+                } catch (error) {
+                    alert(`There was an error while joining the game: ${error}`);
+                }
+                play();
+            });
+
+            $('form').submit(async (e) => {
+                e.preventDefault();
+
+                try {
+                    ws = new AsyncWebSocket();
+                    await ws.connect('/game');
+                    await ws.send('PLAYER');
+                    await ws.send($('input[name="game-id"]').val());
+                    $('.welcome').hide();
+                    $('.game').show();
+                } catch (error) {
+                    alert(`There was an error while joining the game: ${error}`);
+                }
+                play();
+            });
+
+            $('.waiting').hide();
+            $('.game').hide();
+
+            var ws;
+            var [playing, myTurn, isX, moveRelease] = [false, false, false, null];
+
+            const scene = new THREE.Scene();
+
+            const _3DContainer = $('._3d-container');
+
+            const aspect = 500 / 1400;
+            const d = 2;
+            const camera = new THREE.OrthographicCamera(- d * aspect, d * aspect, d, - d, 1, 1000);
+            scene.add(camera);
+            camera.position.set(d, d, d);
+            camera.lookAt(scene.position);
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setClearColor(0x2d3436, 0);
+            renderer.setSize(500, 1400);
+            document.body.appendChild(renderer.domElement);
+
+            const group = new THREE.Group();
+
+            const geometry = new THREE.BoxGeometry(1, 3, 1);
+            const edges = new THREE.LineSegments(
+                new THREE.EdgesGeometry(geometry),
+                new THREE.LineBasicMaterial({ color: 0x2d3436 })
+            );
+            group.add(edges);
+
+            for (let i = 0; i < 4; i++) {
+                const grid = new THREE.GridHelper(1, 4, 0x2d3436, 0x2d3436);
+                grid.position.y = i - 1.5;
+                group.add(grid);
+            }
+
+            var oGeometry, oMaterial, xGeometry, xMaterial;
+
+            new THREE.FontLoader().load(
+                '/static/Outfit.typeface.json',
+                font => {
+                    oGeometry = new THREE.TextGeometry("O", { font, size: 0.15, height: 0.01 });
+                    oMaterial = new THREE.MeshBasicMaterial({ color: 0xea2027 });
+                    xGeometry = new THREE.TextGeometry("X", { font, size: 0.15, height: 0.01 });
+                    xMaterial = new THREE.MeshBasicMaterial({ color: 0x0652dd });
+
+                    scene.add(group);
+
+                    renderer.render(scene, camera);
+                    _3DContainer.attr('src', renderer.domElement.toDataURL());
+                }
+            );
+
+            const tablesContainer = $('.tables-container');
+
+            for (let i = 0; i < 4; i++) {
+                const table = $(`<table class="face"><caption>Face #${i + 1}</caption></table>`);
+
+                for (let j = 0; j < 4; j++) {
+                    const row = $(`<tr class="row"></tr>`);
+
+                    for (let k = 0; k < 4; k++) {
+                        const cell = $(`<td class="cell" data-position="${[i, j, k].join(',')}"></td>`);
+                        cell.on('click', cellClick);
+                        row.append(cell);
+                    }
+                    table.append(row);
+                }
+                tablesContainer.append($('<div class="table-container"></div>').append(table));
+            }
         });
     </script>
 </body>

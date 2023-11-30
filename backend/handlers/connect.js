@@ -1,97 +1,104 @@
 import * as jwt from '../utils/jwt.js';
-
 import { play } from './play.js';
 
 export async function general(ws, req) {
     const event = await ws.receive();
 
-    if (event.type !== 'text' || (event.data !== 'creator' && event.data !== 'player'))
-        return ws.close(400, 'Invalid data');
-    else if (event.data === 'creator')
-        creator(ws, req)
+    if (event !== 'CREATOR' && event !== 'PLAYER') {
+        ws.send('ERROR Invalid data');
+        return await ws.close(1000);
+    }
+    ws.send('OK');
+
+    if (event === 'CREATOR')
+        creatorHandler(ws, req);
     else
-        player(ws, req)
+        playerHandler(ws, req);
 }
 
-export async function creator(ws, req) {
-    // creator authentication
-    var event = await ws.receive();
+export async function creatorHandler(creatorWs, req) {
+    const gameId = [...Array(8)].map(() => Math.floor(Math.random() * 36).toString(36)).join('');
+    const client = await req.locals.pool.connect();
 
     try {
-        var decoded = await jwt.verify(event.data, process.env.JWT_SECRET);
+        await client.query('BEGIN');
+        await client.query('INSERT INTO games (id, creator) VALUES ($1, $2)', [gameId, req.locals.user.username]);
+        await client.query('COMMIT');
     } catch (error) {
-        return ws.close(403, 'Invalid token');
+        await client.query('ROLLBACK');
+        console.error(error);
+        creatorWs.send('ERROR Internal server error');
+        return await creatorWs.close();
     }
-    const client = await req.app.settings.pool.connect();
+    creatorWs.send(gameId);
+    req.locals.clients.set(req.locals.user.username, creatorWs);
+    const playerJWT = await creatorWs.receive();
 
     try {
-        const result = await client.query('SELECT * FROM games WHERE id = $1 AND creator = $2', [decoded.game_id, decoded.creator]);
+        var decoded = await jwt.verify(playerJWT, process.env.JWT_SECRET);
+    } catch (error) {
+        creatorWs.send('ERROR Invalid token');
+        return await creatorWs.close();
+    }
 
-        if (result.rows.length === 0)
-            return ws.close(403, 'Game not found');
+    try {
+        const result = await client.query('SELECT * FROM users WHERE username = $1', [decoded.username]);
+
+        if (result.rows.length === 0) {
+            ws.send('ERROR User not found');
+            return await creatorWs.close();
+        }
+        var player = result.rows[0];
     } catch (error) {
         console.error(error);
-        ws.close(500, 'Internal Server Error');
+        creatorWs.send('ERROR Internal Server Error');
+        return await creatorWs.close();
+    }
+
+    try {
+        await client.query('BEGIN');
+        await client.query('UPDATE games SET player = $1 WHERE id = $2', [player.username, gameId]);
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(error);
+        creatorWs.send('ERROR Internal Server Error');
+        return await creatorWs.close();
     } finally {
         client.release();
     }
-    req.app.settings.clients.set(decoded.creator, ws);
-
-    // player authentication
-    event = await ws.receive();
-
-    try {
-        decoded = await jwt.verify(event.data, process.env.JWT_SECRET);
-    } catch (error) {
-        return ws.close(403, 'Invalid token');
-    }
-
-    try {
-        const result = await client.query(
-            'SELECT * FROM games WHERE id = $1 AND creator = $2 AND player = $3',
-            [decoded.game_id, decoded.creator, decoded.player],
-        );
-
-        if (result.rows.length === 0)
-            return ws.close(403, 'Game not found');
-    } catch (error) {
-        console.error(error);
-        ws.close(500, 'Internal Server Error');
-    } finally {
-        client.release();
-    }
-
-    // game initialization
-    play(req.app.settings.clients.get(creator), req.app.settings.clients.get(player));
+    creatorWs.send('OK');
+    play(creatorWs, req.locals.clients.get(player.username), req.locals.pool, gameId);
 }
 
-export async function player(creatorWs, req) {
-    // player authentication
-    var event = await ws.receive();
+export async function playerHandler(playerWs, req) {
+    const gameId = await playerWs.receive();
 
-    try {
-        var decoded = await jwt.verify(event.data, process.env.JWT_SECRET);
-    } catch (error) {
-        return ws.close(403, 'Invalid token');
+    if (!gameId.match('^[a-z0-9]{8}$')) {
+        playerWs.send('ERROR Invalid game ID');
+        return await playerWs.close();
     }
-    const client = await req.app.settings.pool.connect();
+    const client = await req.locals.pool.connect();
 
     try {
         const result = await client.query(
             'SELECT * FROM games WHERE id = $1 AND NOT creator = $2 AND player IS NULL',
-            [decoded.game_id, decoded.player],
+            [gameId, req.locals.user.username],
         );
 
-        if (result.rows.length === 0)
-            return ws.close(403, 'Game not found');
-        var creator = result.rows[0].creator;
+        if (result.rows.length === 0) {
+            playerWs.send('ERROR Game not found');
+            return await playerWs.close();
+        }
+        var game = result.rows[0];
     } catch (error) {
         console.error(error);
-        ws.close(500, 'Internal Server Error');
+        playerWs.send('ERROR Internal Server Error');
+        return await playerWs.close();
     } finally {
         client.release();
     }
-    req.app.settings.clients.set(decoded.player, ws);
-    req.app.settings.clients.get(creator).send(JSON.stringify({ game_id: decoded.game_id, creator, player: decoded.player }));
+    playerWs.send('OK');
+    req.locals.clients.set(req.locals.user.username, playerWs);
+    req.locals.clients.get(game.creator).send(await jwt.sign({ username: req.locals.user.username }, process.env.JWT_SECRET));
 }
-
